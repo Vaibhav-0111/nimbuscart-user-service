@@ -1,11 +1,10 @@
 package com.nimbuscart.user_service.Model;
-package com.nimbuscart.user_service.model;
 
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
