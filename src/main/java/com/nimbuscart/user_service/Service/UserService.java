@@ -1,32 +1,43 @@
 package com.nimbuscart.user_service.Service;
-
-
 import com.nimbuscart.user_service.Model.User;
+import com.nimbuscart.user_service.dto.UserRequestDto;
+import com.nimbuscart.user_service.dto.UserResponseDto;
+import com.nimbuscart.user_service.repository.UserRepository;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
 @Service
 public class UserService {
-    private final List<User> users = new ArrayList<>();
-    private final AtomicLong idCounter = new AtomicLong();
-    public User createUser(User user) {
-        user.setId(idCounter.incrementAndGet());
-        users.add(user);
-        return user;
+    private final UserRepository userRepository;
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
-    public List<User> getAllUsers() {
-        return users;
+    public UserResponseDto createUser(UserRequestDto dto) {
+        User user = new User(dto.getName(), dto.getEmail());
+        User saved = userRepository.save(user);
+        return toResponseDto(saved);
     }
-    public User getUserById(Long id) {
-        return users.stream()
-                .filter(u -> u.getId().equals(id))
-                .findFirst()
-                .orElse(null);
+    public List<UserResponseDto> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::toResponseDto)
+                .toList();
     }
-
-
-
+    public UserResponseDto getUserById(Long id) {
+        User user = userRepository.findById(id).orElse(null);
+        return user == null ? null : toResponseDto(user);
+    }
+    public UserResponseDto updateUser(Long id, UserRequestDto dto) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) return null;
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        return toResponseDto(userRepository.save(user));
+    }
+    public boolean deleteUser(Long id) {
+        if (!userRepository.existsById(id)) return false;
+        userRepository.deleteById(id);
+        return true;
+    }
+    private UserResponseDto toResponseDto(User user) {
+        return new UserResponseDto(user.getId(), user.getName(), user.getEmail());
+    }
 }

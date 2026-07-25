@@ -1,8 +1,10 @@
 package com.nimbuscart.user_service.Controller;
 
 
-import com.nimbuscart.user_service.Model.User;
 import com.nimbuscart.user_service.Service.UserService;
+import com.nimbuscart.user_service.dto.UserRequestDto;
+import com.nimbuscart.user_service.dto.UserResponseDto;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,25 +14,30 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
     private final UserService userService;
-    public UserController(UserService userService){
-        this.userService=userService;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
-    public User createUser(@RequestBody User user) {
-        return userService.createUser(user);
+    @PostMapping
+    public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody UserRequestDto dto) {
+        return ResponseEntity.ok(userService.createUser(dto));
     }
-
     @GetMapping
-    public List<User> getAllUsers() {
+    public List<UserResponseDto> getAllUsers() {
         return userService.getAllUsers();
     }
-
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        User user = userService.getUserById(id);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(user);=
+    public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
+        UserResponseDto dto = userService.getUserById(id);
+        return dto == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
     }
-
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponseDto> updateUser(@PathVariable Long id, @Valid @RequestBody UserRequestDto dto) {
+        UserResponseDto updated = userService.updateUser(id, dto);
+        return updated == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(updated);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        boolean deleted = userService.deleteUser(id);
+        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
 }
