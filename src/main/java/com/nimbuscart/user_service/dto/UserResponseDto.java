@@ -1,5 +1,8 @@
 package com.nimbuscart.user_service.dto;
 
+import lombok.Getter;
+
+@Getter
 public class UserResponseDto {
 
     private Long id;
@@ -12,7 +15,4 @@ public class UserResponseDto {
         this.email = email;
     }
 
-    public Long getId() { return id; }
-    public String getName() { return name; }
-    public String getEmail() { return email; }
 }
