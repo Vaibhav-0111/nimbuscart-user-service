@@ -2,9 +2,12 @@ package com.nimbuscart.user_service.Controller;
 
 
 import com.nimbuscart.user_service.Service.UserService;
+import com.nimbuscart.user_service.dto.LoginRequestDto;
+import com.nimbuscart.user_service.dto.LoginResponseDto;
 import com.nimbuscart.user_service.dto.UserRequestDto;
 import com.nimbuscart.user_service.dto.UserResponseDto;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,5 +41,13 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         boolean deleted = userService.deleteUser(id);
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto dto) {
+        String token = userService.login(dto);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(new LoginResponseDto(token));
     }
 }

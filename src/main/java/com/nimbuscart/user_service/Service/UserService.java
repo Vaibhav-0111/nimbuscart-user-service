@@ -1,5 +1,7 @@
 package com.nimbuscart.user_service.Service;
 import com.nimbuscart.user_service.Model.User;
+import com.nimbuscart.user_service.dto.LoginRequestDto;
+import com.nimbuscart.user_service.dto.LoginResponseDto;
 import com.nimbuscart.user_service.dto.UserRequestDto;
 import com.nimbuscart.user_service.dto.UserResponseDto;
 import com.nimbuscart.user_service.repository.UserRepository;
@@ -44,4 +46,12 @@ public class UserService {
     private UserResponseDto toResponseDto(User user) {
         return new UserResponseDto(user.getId(), user.getName(), user.getEmail());
     }
+    public String login(LoginRequestDto dto) {
+        User user = userRepository.findByEmail(dto.getEmail()).orElse(null);
+        if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            return null;
+        }
+        return jwtUtil.generateToken(user.getEmail());
+    }
+
 }
