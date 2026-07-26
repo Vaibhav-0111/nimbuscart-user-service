@@ -1,6 +1,4 @@
 package com.nimbuscart.user_service.Controller;
-
-
 import com.nimbuscart.user_service.Service.UserService;
 import com.nimbuscart.user_service.dto.LoginRequestDto;
 import com.nimbuscart.user_service.dto.LoginResponseDto;
@@ -10,7 +8,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 @RestController
 @RequestMapping("/api/users")

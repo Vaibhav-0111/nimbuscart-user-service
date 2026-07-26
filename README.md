@@ -16,11 +16,11 @@ This isn't a tutorial clone. Every layer is built, understood, and pushed increm
 - Spring Data JPA (Hibernate)
 - H2 (in-memory database, for development)
 - Bean Validation (Jakarta Validation)
-- Spring Security — password hashing with BCrypt (JWT login in progress)
+- Spring Security — password hashing with BCrypt, JWT token generation on login (route-level enforcement in progress)
 - Maven
 
 **Planned**
-- JWT-based login and route-level authorization (finishing Spring Security)
+- Route-level JWT authentication (require token on protected endpoints) and role-based authorization
 - PostgreSQL (replacing H2)
 - Spring Cloud (Eureka service discovery, API Gateway, Config Server)
 - Kafka (event-driven inter-service communication)
@@ -66,9 +66,13 @@ com.nimbuscart.user_service
 │   └── User.java
 ├── dto
 │   ├── UserRequestDto.java
-│   └── UserResponseDto.java
+│   ├── UserResponseDto.java
+│   ├── LoginRequestDto.java
+│   └── LoginResponseDto.java
 ├── config
 │   └── SecurityConfig.java
+├── security
+│   └── JwtUtil.java
 ├── exception
 │   └── GlobalExceptionHandler.java
 └── UserServiceApplication.java
@@ -78,7 +82,7 @@ com.nimbuscart.user_service
 
 | Method | Endpoint            | Description               | Request Body       | Success Response |
 |--------|----------------------|----------------------------|---------------------|-------------------|
-| POST   | `/api/users`         | Create a new user          | `UserRequestDto`    | `200 OK` + user   |
+| POST   | `/api/users/login`   | Log in, returns a JWT token | `LoginRequestDto`   | `200 OK` + token / `401` |
 | GET    | `/api/users`         | List all users             | —                   | `200 OK` + list   |
 | GET    | `/api/users/{id}`    | Get a user by ID           | —                   | `200 OK` + user / `404` |
 | PUT    | `/api/users/{id}`    | Update an existing user (idempotent) | `UserRequestDto` | `200 OK` + user / `404` |
@@ -122,11 +126,10 @@ The app starts on `http://localhost:8080`.
 ### Example requests
 
 ```bash
-# Create a user
-curl -X POST http://localhost:8080/api/users \
+# Log in and get a JWT token
+curl -X POST http://localhost:8080/api/users/login \
   -H "Content-Type: application/json" \
-  -d "{\"name\":\"Vaibhav\",\"email\":\"vaibhav@test.com\",\"password\":\"secret123\"}"
-
+  -d "{\"email\":\"vaibhav@test.com\",\"password\":\"secret123\"}"
 # List all users
 curl http://localhost:8080/api/users
 
@@ -152,12 +155,14 @@ curl -X DELETE http://localhost:8080/api/users/1
 
 - **Day 4 — DTO Pattern & Full CRUD.** Introduced `UserRequestDto` and `UserResponseDto` to fully decouple the public API contract from the database entity — the entity is never exposed directly, protecting against future internal fields leaking through the API. Validation moved from the entity onto `UserRequestDto`, since input rules are an API concern, not a storage concern. Completed full CRUD by adding `PUT` (idempotent update — calling it repeatedly with the same data has the same effect as calling it once) and `DELETE` (returns `204 No Content`, since a successful deletion has nothing meaningful left to return).
 
-- **Day 5 (Part 1) — Password Security Foundations.** Added `password` and `role` fields to the `User` entity and `UserRequestDto`. Introduced `SecurityConfig` with a `BCryptPasswordEncoder` bean, wired into `UserService` via constructor injection, so every password is hashed (salted, one-way) before it ever reaches the database — plain-text passwords are never stored, and the hash itself is never exposed through `UserResponseDto`. JWT-based login and route-level security are Part 2, still pending.
+- **Day 5 (Part 1) — Password Security Foundations.** Added `password` and `role` fields to the `User` entity and `UserRequestDto`. Introduced `SecurityConfig` with a `BCryptPasswordEncoder` bean, wired into `UserService` via constructor injection, so every password is hashed (salted, one-way) before it ever reaches the database — plain-text passwords are never stored, and the hash itself is never exposed through `UserResponseDto`. JWT-based login and route-level security are Part 2, still pending.JWT-based login and route-level security are Part 2, still pending.
+
+- **Day 5 (Part 2) — Login & Token Generation.** Added `JwtUtil` to generate and verify signed JWTs (HMAC-SHA256), and a `POST /api/users/login` endpoint that verifies credentials via `passwordEncoder.matches()` and returns a token on success (`401` otherwise). Added `findByEmail` to `UserRepository` as a derived query method. Tokens are stateless — the server verifies each one's signature fresh, with nothing stored server-side. Enforcing the token on protected routes is Part 3, still pending.
 
 ## Roadmap
 
-- **Day 5 (Part 2)** — Generate real JWT tokens on login, verify them via a security filter on every request, and require authentication on `/api/users` routes; add role-based authorization (e.g. only `ADMIN` can delete)
-- Migrate from H2 to PostgreSQL, with Flyway for versioned schema migrations
+- **Day 5 (Part 3)** — Add a `JwtAuthFilter` to intercept every request, verify the token from the `Authorization` header, and require authentication on `/api/users` routes; add role-based authorization (e.g. only `ADMIN` can delete)
+- - Migrate from H2 to PostgreSQL, with Flyway for versioned schema migrations
 - Split into true microservices: Auth Service, Product Service, Order Service
 - Spring Cloud Gateway as a single entry point + Eureka for service discovery
 - Kafka for event-driven communication between services (e.g. order placed → inventory updated → notification sent)
