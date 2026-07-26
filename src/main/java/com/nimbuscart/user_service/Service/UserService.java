@@ -3,12 +3,15 @@ import com.nimbuscart.user_service.Model.User;
 import com.nimbuscart.user_service.dto.UserRequestDto;
 import com.nimbuscart.user_service.dto.UserResponseDto;
 import com.nimbuscart.user_service.repository.UserRepository;
+import io.jsonwebtoken.security.Password;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 @Service
 public class UserService {
     private final UserRepository userRepository;
-    public UserService(UserRepository userRepository) {
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
     }
     public UserResponseDto createUser(UserRequestDto dto) {
@@ -21,6 +24,7 @@ public class UserService {
                 .map(this::toResponseDto)
                 .toList();
     }
+
     public UserResponseDto getUserById(Long id) {
         User user = userRepository.findById(id).orElse(null);
         return user == null ? null : toResponseDto(user);

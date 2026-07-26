@@ -1,12 +1,12 @@
 # NimbusCart — User Service
 
-A cloud-native, microservices-based order & fulfillment platform, built incrementally as a hands-on learning project covering Spring Boot, Spring Data JPA, Spring Security, microservices architecture, and DevOps practices — one real feature at a time, with every part pushed and documented as it's built.
+A cloud-native, microservices-based order & fulfillment platform, built incrementally as a hands-on learning project covering Spring Boot, Spring Data JPA, Spring Security, microservices architecture, and DevOps practices one real feature at a time, with every part pushed and documented as it's built.
 
-This repository is the **User Service** — the first of several planned microservices in the larger NimbusCart platform.
+This repository is the **User Service**  the first of several planned microservices in the larger NimbusCart platform.
 
 ## Philosophy
 
-This isn't a tutorial clone. Every layer is built, understood, and pushed incrementally — no part of the codebase exists that hasn't been explained and deliberately reasoned through first. Each day adds one real capability, documented with the reasoning behind it, not just the code.
+This isn't a tutorial clone. Every layer is built, understood, and pushed incrementally  no part of the codebase exists that hasn't been explained and deliberately reasoned through first. Each day adds one real capability, documented with the reasoning behind it, not just the code.
 
 ## Tech Stack
 
@@ -16,11 +16,12 @@ This isn't a tutorial clone. Every layer is built, understood, and pushed increm
 - Spring Data JPA (Hibernate)
 - H2 (in-memory database, for development)
 - Bean Validation (Jakarta Validation)
+- Spring Security — password hashing with BCrypt (JWT login in progress)
 - Maven
 
 **Planned**
+- JWT-based login and route-level authorization (finishing Spring Security)
 - PostgreSQL (replacing H2)
-- Spring Security + JWT authentication
 - Spring Cloud (Eureka service discovery, API Gateway, Config Server)
 - Kafka (event-driven inter-service communication)
 - Resilience4j (circuit breakers)
@@ -37,6 +38,7 @@ Service     →  business logic, orchestration, DTO ↔ Entity conversion
 Repository  →  data access (Spring Data JPA)
 Model       →  database entity definitions
 DTO         →  API request/response contracts (never expose entities directly)
+Config      →  framework-level bean configuration (e.g. password encoding)
 Exception   →  centralized error handling (@RestControllerAdvice)
 ```
 
@@ -45,7 +47,8 @@ Exception   →  centralized error handling (@RestControllerAdvice)
 - **Controllers stay thin.** They never contain business logic — only HTTP concerns: mapping routes, reading input, setting status codes.
 - **Services own the rules.** All business logic lives here, independent of HTTP or storage, so it can be tested and reused without a running web server.
 - **Repositories are pure data access.** Spring Data JPA generates the implementation from an interface — no hand-written SQL for standard operations.
-- **DTOs protect the API contract.** The database entity (`User`) and what a client can send/receive (`UserRequestDto` / `UserResponseDto`) are deliberately different classes, so the storage model can evolve without ever accidentally leaking internal fields through the API.
+- **DTOs protect the API contract.** The database entity (`User`) and what a client can send/receive (`UserRequestDto` / `UserResponseDto`) are deliberately different classes, so the storage model can evolve without ever accidentally leaking internal fields through the API — this is precisely why the newly added `password` field never appears in any API response.
+- **Config holds framework wiring.** Beans like the `PasswordEncoder` live here, separate from business logic, so security configuration has one clear home.
 - **Errors are centralized.** One `@RestControllerAdvice` class formats every validation failure consistently, instead of scattering try/catch blocks across controllers.
 
 ### Package layout
@@ -64,6 +67,8 @@ com.nimbuscart.user_service
 ├── dto
 │   ├── UserRequestDto.java
 │   └── UserResponseDto.java
+├── config
+│   └── SecurityConfig.java
 ├── exception
 │   └── GlobalExceptionHandler.java
 └── UserServiceApplication.java
@@ -80,11 +85,14 @@ com.nimbuscart.user_service
 | DELETE | `/api/users/{id}`    | Delete a user               | —                   | `204 No Content` / `404` |
 | GET    | `/api/hello`          | Health check                 | —                   | `200 OK`          |
 
+> Every endpoint is currently open — JWT-based authentication to require a valid token on these routes is in progress (Day 5, part 2).
+
 ### Validation
 
 Every request body is validated before it reaches business logic:
 - `name` — required, cannot be blank
 - `email` — required, must be a valid email format, must be unique at the database level
+- `password` — required, hashed with BCrypt before being stored; never returned in any API response
 
 Invalid input returns a structured `400 Bad Request`, e.g.:
 ```json
@@ -117,7 +125,7 @@ The app starts on `http://localhost:8080`.
 # Create a user
 curl -X POST http://localhost:8080/api/users \
   -H "Content-Type: application/json" \
-  -d "{\"name\":\"Vaibhav\",\"email\":\"vaibhav@test.com\"}"
+  -d "{\"name\":\"Vaibhav\",\"email\":\"vaibhav@test.com\",\"password\":\"secret123\"}"
 
 # List all users
 curl http://localhost:8080/api/users
@@ -128,7 +136,7 @@ curl http://localhost:8080/api/users/1
 # Update a user
 curl -X PUT http://localhost:8080/api/users/1 \
   -H "Content-Type: application/json" \
-  -d "{\"name\":\"Vaibhav Tripathi\",\"email\":\"vaibhav2@test.com\"}"
+  -d "{\"name\":\"Vaibhav Tripathi\",\"email\":\"vaibhav2@test.com\",\"password\":\"newsecret123\"}"
 
 # Delete a user
 curl -X DELETE http://localhost:8080/api/users/1
@@ -144,9 +152,11 @@ curl -X DELETE http://localhost:8080/api/users/1
 
 - **Day 4 — DTO Pattern & Full CRUD.** Introduced `UserRequestDto` and `UserResponseDto` to fully decouple the public API contract from the database entity — the entity is never exposed directly, protecting against future internal fields leaking through the API. Validation moved from the entity onto `UserRequestDto`, since input rules are an API concern, not a storage concern. Completed full CRUD by adding `PUT` (idempotent update — calling it repeatedly with the same data has the same effect as calling it once) and `DELETE` (returns `204 No Content`, since a successful deletion has nothing meaningful left to return).
 
+- **Day 5 (Part 1) — Password Security Foundations.** Added `password` and `role` fields to the `User` entity and `UserRequestDto`. Introduced `SecurityConfig` with a `BCryptPasswordEncoder` bean, wired into `UserService` via constructor injection, so every password is hashed (salted, one-way) before it ever reaches the database — plain-text passwords are never stored, and the hash itself is never exposed through `UserResponseDto`. JWT-based login and route-level security are Part 2, still pending.
+
 ## Roadmap
 
-- **Day 5+** — Spring Security with JWT-based authentication and role-based access control (currently every endpoint is open)
+- **Day 5 (Part 2)** — Generate real JWT tokens on login, verify them via a security filter on every request, and require authentication on `/api/users` routes; add role-based authorization (e.g. only `ADMIN` can delete)
 - Migrate from H2 to PostgreSQL, with Flyway for versioned schema migrations
 - Split into true microservices: Auth Service, Product Service, Order Service
 - Spring Cloud Gateway as a single entry point + Eureka for service discovery
