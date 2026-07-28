@@ -1,8 +1,8 @@
 # NimbusCart — User Service
 
-A cloud-native, microservices-based order & fulfillment platform, built incrementally as a hands-on learning project covering Spring Boot, Spring Data JPA, Spring Security, microservices architecture, and DevOps practices — one real feature at a time, with every part pushed and documented as it's built.
+A cloud-native, microservices-based order & fulfillment platform, built incrementally as a hands-on learning project covering Spring Boot, Spring Data JPA, Spring Security, microservices architecture, and DevOps practices one real feature at a time, with every part pushed and documented as it's built.
 
-This repository is the **User Service** — the first of several planned microservices in the larger NimbusCart platform.
+This repository is the **User Service** the first of several planned microservices in the larger NimbusCart platform.
 
 ## Philosophy
 
