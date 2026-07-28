@@ -12,7 +12,6 @@ import java.util.List;
 @Service
 public class UserService {
     private final UserRepository userRepository;
-
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
     }
@@ -26,7 +25,6 @@ public class UserService {
                 .map(this::toResponseDto)
                 .toList();
     }
-
     public UserResponseDto getUserById(Long id) {
         User user = userRepository.findById(id).orElse(null);
         return user == null ? null : toResponseDto(user);
@@ -53,5 +51,11 @@ public class UserService {
         }
         return jwtUtil.generateToken(user.getEmail());
     }
-
+    public String login(LoginRequestDto dto) {
+        User user = userRepository.findByEmail(dto.getEmail()).orElse(null);
+        if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+            return null;
+        }
+        return jwtUtil.generateToken(user.getEmail(), user.getRole());
+    }
 }

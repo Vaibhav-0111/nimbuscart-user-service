@@ -7,6 +7,7 @@ import com.nimbuscart.user_service.dto.UserResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 @RestController
@@ -34,6 +35,7 @@ public class UserController {
         UserResponseDto updated = userService.updateUser(id, dto);
         return updated == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(updated);
     }
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         boolean deleted = userService.deleteUser(id);
@@ -47,4 +49,5 @@ public class UserController {
         }
         return ResponseEntity.ok(new LoginResponseDto(token));
     }
+
 }
