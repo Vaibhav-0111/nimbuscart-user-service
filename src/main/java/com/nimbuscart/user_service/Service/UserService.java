@@ -43,6 +43,9 @@ public class UserService {
         userRepository.deleteById(id);
         return true;
     }
+//    public boolean Updated (Long id){
+//        user.setName(toResponseDto().getName());
+//    }
     private UserResponseDto toResponseDto(User user) {
         return new UserResponseDto(user.getId(), user.getName(), user.getEmail());
     }
