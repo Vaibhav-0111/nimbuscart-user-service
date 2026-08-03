@@ -49,5 +49,4 @@ public class UserController {
         }
         return ResponseEntity.ok(new LoginResponseDto(token));
     }
-
 }
