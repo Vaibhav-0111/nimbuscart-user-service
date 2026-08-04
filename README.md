@@ -14,13 +14,12 @@ This isn't a tutorial clone. Every layer is built, understood, and pushed increm
 - Java 17
 - Spring Boot 4
 - Spring Data JPA (Hibernate)
-- H2 (in-memory database, for development)
 - Bean Validation (Jakarta Validation)
+- PostgreSQL 16 (Docker), Spring Data JPA, Flyway for versioned schema migrations
 - Spring Security — full JWT authentication (login, token verification via a custom filter) and role-based authorization (`@PreAuthorize`)
 - Maven
 
 **Planned**
-- PostgreSQL (replacing H2), with Flyway for versioned schema migrations
 - Spring Cloud (Eureka service discovery, API Gateway, Config Server)
 - Kafka (event-driven inter-service communication)
 - Resilience4j (circuit breakers)
@@ -78,6 +77,9 @@ com.nimbuscart.user_service
 ├── exception
 │   └── GlobalExceptionHandler.java
 └── UserServiceApplication.java
+├── db
+│   └── migration
+│       └── V1__create_users_table.sql (resources, not Java)
 ```
 
 ## API Endpoints
@@ -115,12 +117,20 @@ instead of a raw stack trace — handled centrally by `GlobalExceptionHandler`.
 
 ## Running Locally
 
-**Prerequisites:** Java 17+, Maven 3.9+
+**Prerequisites:** Java 17+, Maven 3.9+, Docker
 
-```bash
+Start Postgres:
+````
+docker run --name nimbuscart-pg -e POSTGRES_USER=nimbus -e POSTGRES_PASSWORD=nimbus123 -e POSTGRES_DB=nimbuscart_users -p 5433:5432 -d postgres:16
+````
+
+Then:
+
+``
 mvn spring-boot:run
-```
+``
 
+Flyway automatically creates the schema on first startup — no manual SQL needed.
 The app starts on `http://localhost:8080`.
 
 **H2 Console** (inspect live data while the app runs):
@@ -172,10 +182,11 @@ curl -X DELETE http://localhost:8080/api/users/1 \
 
 - **Day 6 — Enforcing Authentication & Authorization.** Added `JwtAuthFilter` (a `OncePerRequestFilter`) that reads the `Authorization: Bearer <token>` header on every request, verifies the token, and populates Spring Security's `SecurityContextHolder`. Configured a stateless `SecurityFilterChain` requiring authentication on `/api/users/**` while keeping registration, login, and health-check routes open. Embedded the user's role as a custom JWT claim, and enabled `@PreAuthorize("hasRole('ADMIN')")` on the delete endpoint via `@EnableMethodSecurity` — the API now genuinely enforces identity and role, not just issues tokens.
 
+- **Day 7 — Real Persistence with PostgreSQL + Flyway.** Replaced H2 with PostgreSQL 16 running in Docker. Introduced Flyway for versioned, auditable schema migrations (`V1__create_users_table.sql`), and switched Hibernate from `ddl-auto=update` to `ddl-auto=validate` — Flyway now owns all schema changes; Hibernate only verifies the entity mapping matches. Fixed a JVM/Postgres timezone compatibility issue by forcing UTC in a static initializer, ensuring it applies both to normal runs and to Spring's test context loader.
+
 ## Roadmap
 
-- **Day 7** — Migrate from H2 to PostgreSQL, with Flyway for versioned schema migrations
-- Split into true microservices: Auth Service, Product Service, Order Service
+- **Day 8** — Split into true microservices: extract Auth Service, add Eureka service discovery and Spring Cloud Gateway
 - Spring Cloud Gateway as a single entry point + Eureka for service discovery
 - Kafka for event-driven communication between services (e.g. order placed → inventory updated → notification sent)
 - Resilience4j circuit breakers for fault tolerance between services
